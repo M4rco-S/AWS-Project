@@ -17,9 +17,13 @@ def internal_server_error(error):
     app.logger.error(f"ErrorRRRRr: {error}")
     return jsonify({'error': 'Error interno del servidor'}), 500
 
-def validar_datos(data, campos):
-    for campo in campos:
-        if campo not in data or not data[campo]:
+
+def validar_datos(data, campos, tipos_esperados):
+    if len(campos) != len(tipos_esperados):
+        return False
+
+    for campo, tipo_esperado in zip(campos, tipos_esperados):
+        if campo not in data or not isinstance(data[campo], tipo_esperado):
             return False
     return True
 
@@ -28,13 +32,13 @@ def validar_datos(data, campos):
 @app.route('/alumnos', methods=['GET'])
 def get_alumnos():
     alumnos_data = [alumno.to_dict() for alumno in alumnos]
-    return jsonify(alumnos_data)
+    return jsonify(alumnos_data), 200
     #return jsonify(alumnos), 200
     
 @app.route('/profesores', methods=['GET'])
 def get_profesores():
     profesores_data = [profesor.to_dict() for profesor in profesores]
-    return jsonify(profesores_data)
+    return jsonify(profesores_data), 200
 
 
 @app.route('/alumnos/<int:id>', methods=['GET'])
@@ -57,9 +61,17 @@ def get_profesor(id):
 def create_alumno():
     data = request.get_json()
     
+    campos_esperados = ['id','nombres', 'apellidos', 'matricula', 'promedio']
+    tipos_esperados = [int, str, str, str, float]
+    
+    if validar_datos(data, campos_esperados, tipos_esperados):
+        
+        nuevo_id = data['id']
+        if any(alumno.id == nuevo_id for alumno in alumnos):
+            return jsonify({'error': f'ID {nuevo_id} ya está en uso'}), 400
 
-    if validar_datos(data, ['nombres', 'apellidos', 'matricula', 'promedio']):
-        alumno = Alumno(id=len(alumnos) + 1, **data)
+        
+        alumno = Alumno(id=nuevo_id, nombres=data['nombres'], apellidos=data['apellidos'], matricula=data['matricula'], promedio=data['promedio'])
         alumnos.append(alumno)
         return jsonify(alumno.to_dict()), 201
         
@@ -68,57 +80,103 @@ def create_alumno():
 @app.route('/profesores', methods=['POST'])
 def create_profesor():
     data = request.get_json()
+    
+    campos_esperados = ['id','numeroEmpleado', 'nombres', 'apellidos', 'horasClase']
+    tipos_esperados = [int, int, str, str, int]
+    
+    if validar_datos(data, campos_esperados, tipos_esperados):
+        
+        nuevo_id = data['id']
+        if any(profesor.id == nuevo_id for profesor in profesores):
+            return jsonify({'error': f'ID {nuevo_id} ya está en uso'}), 400
 
-    if validar_datos(data, ['numero_empleado','nombres', 'apellidos', 'horas_clase']):
-        profesor = Profesor(id=len(profesores) + 1, **data)
+        
+        profesor = Profesor(id=nuevo_id, numeroEmpleado=data['numeroEmpleado'], nombres=data['nombres'], apellidos=data['apellidos'], horasClase=data['horasClase'])
         profesores.append(profesor)
         return jsonify(profesor.to_dict()), 201
+
+    
     return jsonify({'error': 'Datos incompletos o inválidos'}), 400
 
 # METODOS PUT
 
 @app.route('/alumnos/<int:id>', methods=['PUT'])
 def update_alumno(id):
+    global alumnos
     alumno = next((alumno for alumno in alumnos if alumno.id == id), None)
+    campos_esperados = ['nombres', 'apellidos', 'matricula', 'promedio']
+    tipos_esperados = [str, str, str, float]
+    data = request.get_json()
     
     if alumno:
-        data = request.get_json()
-        alumno.nombres = data.get('nombres', alumno.nombres)
-        alumno.apellidos = data.get('apellidos', alumno.apellidos)
-        alumno.matricula = data.get('matricula', alumno.matricula)
-        alumno.promedio = data.get('promedio', alumno.promedio)
         
-        return jsonify(alumno.to_dict()), 200
+        if validar_datos(data, campos_esperados, tipos_esperados):
+        
+            alumno.nombres = data.get('nombres', alumno.nombres)
+            alumno.apellidos = data.get('apellidos', alumno.apellidos)
+            alumno.matricula = data.get('matricula', alumno.matricula)
+            alumno.promedio = data.get('promedio', alumno.promedio)
+        
+            return jsonify(alumno.to_dict()), 200
+        
+        return jsonify({'error': 'Datos incompletos o inválidos'}), 400
+    
     return jsonify({'error': 'Alumno no encontrado'}), 404
+
+   
+    
+    
 
 @app.route('/profesores/<int:id>', methods=['PUT'])
 def update_profesor(id):
+    global profesores
     profesor = next((profesor for profesor in profesores if profesor.id == id), None)
+    campos_esperados = ['numeroEmpleado', 'nombres', 'apellidos', 'horasClase']
+    tipos_esperados = [int, str, str, int]
+    data = request.get_json()
     
     if profesor:
-        data = request.get_json()
-        profesor.numero_empleado = data.get('numeroEmpleado', profesor.numero_empleado)
-        profesor.nombres = data.get('nombres', profesor.nombres)
-        profesor.apellidos = data.get('apellidos', profesor.apellidos)
-        profesor.horas_clase = data.get('horasClase', profesor.horas_clase)
         
-        return jsonify(profesor.to_dict()), 200
+        if validar_datos(data, campos_esperados, tipos_esperados):
+        
+            profesor.numeroEmpleado = data.get('numeroEmpleado', profesor.numeroEmpleado)
+            profesor.nombres = data.get('nombres', profesor.nombres)
+            profesor.apellidos = data.get('apellidos', profesor.apellidos)
+            profesor.horasClase = data.get('horasClase', profesor.horasClase)
+        
+            return jsonify(profesor.to_dict()), 200
+        
+        return jsonify({'error': 'Datos incompletos o inválidos'}), 400
+    
     return jsonify({'error': 'Profesor no encontrado'}), 404
+
 
 # METODOS DELETE
 
 @app.route('/alumnos/<int:id>', methods=['DELETE'])
 def delete_alumno(id):
+    
     global alumnos
-    alumnos = [alumno for alumno in alumnos if alumno.id != id]
-    return jsonify({'message': 'Alumno eliminado correctamente'}), 200
+    alumno_eliminar = next((alumno for alumno in alumnos if alumno.id == id), None)
+
+    
+    if alumno_eliminar:
+        alumnos = [alumno for alumno in alumnos if alumno.id != id]
+        return jsonify({'message': 'Alumno eliminado'}), 200
+    else:
+        return jsonify({'error': f'Alumno no encontrado'}), 404
 
 @app.route('/profesores/<int:id>', methods=['DELETE'])
 def delete_profesor(id):
     global profesores
-    profesores = [profesor for profesor in profesores if profesor.id != id]
-    return jsonify({'message': 'Profesor eliminado correctamente'}), 200
+    profesor_eliminar = next((profesor for profesor in profesores if profesor.id == id), None)
+
+    if profesor_eliminar:
+        profesores = [profesor for profesor in profesores if profesor.id != id]
+        return jsonify({'message': 'Profesor eliminado'}), 200
+    else:
+        return jsonify({'error': f'Profesor no encontrado'}), 404
 
 #if __name__ == '__main__':
-    #app.run(debug=False)
+#    app.run(debug=True)
     

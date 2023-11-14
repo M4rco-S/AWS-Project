@@ -1,5 +1,5 @@
 class Alumno:
-    def __init__(self, id: int, nombres: str, apellidos: str, matricula: int, promedio:float):
+    def __init__(self, id, nombres, apellidos, matricula, promedio):
         self.id = id
         self.nombres = nombres
         self.apellidos = apellidos
@@ -16,18 +16,18 @@ class Alumno:
         }
 
 class Profesor:
-    def __init__(self, id: int, numero_empleado:int, nombres:str, apellidos:str, horas_clase:int):
+    def __init__(self, id, numeroEmpleado, nombres, apellidos, horasClase):
         self.id = id
-        self.numero_empleado = numero_empleado
+        self.numeroEmpleado = numeroEmpleado
         self.nombres = nombres
         self.apellidos = apellidos
-        self.horas_clase = horas_clase
+        self.horasClase = horasClase
     
     def to_dict(self):
         return {
             "id": self.id,
-            "numero_empleado": self.numero_empleado,
+            "numeroEmpleado": self.numeroEmpleado,
             "nombres": self.nombres,
             "apellidos": self.apellidos,
-            "horas_clase": self.horas_clase
+            "horasClase": self.horasClase
         }

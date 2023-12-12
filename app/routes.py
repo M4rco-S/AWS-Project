@@ -51,11 +51,9 @@ def get_alumno(id):
     if not alumno:
         return jsonify({'error': 'Alumno no encontrado'}), 404
 
-    
     bucket_name = 'marcoascawsbucket'  
     foto_perfil_url = f'https://{bucket_name}.s3.amazonaws.com/alumnos/{id}_fotoPerfil.jpg'
 
- 
     alumno_data = {
         'id': alumno.id,
         'nombres': alumno.nombres,
@@ -113,9 +111,9 @@ def upload_photo(id):
     
     s3 = boto3.client(
         's3',
-        aws_access_key_id='ASIAVQEVC2TXMFGLTAIQ',
-        aws_secret_access_key='gD654U+af/j1UTAw9xoRcbqhoO5xAvYyKJ2WgPS4',
-        aws_session_token='FwoGZXIvYXdzEMz//////////wEaDExTw3LwEIbxZj5MWiLOATQ5dMu9MCCqZm+jI7zqfSBXHJFLxGAOyckZeWyO7rAupE1GaRn2U+xBgbhTGP2b52z0/yY1HPgGn7tDgPKhGO9Bve4OJCDwS4wZE/H/kjypfBF6UfBa9xiB/hwvd6mxmxwc7GDz5RPPRnXU5A/kgLw6JNuPa1RGwhRgSJ6y+MC/3U79hC+LB/u799VltIx5O3eOCLgdw6qEtuX2w04hTSOKU68rUc74uwja3jGDrw0Cu348iRAxkfPs433bsG1p7AaK6DKa/ho/BArgG/uzKK7U4qsGMi0moPQ2xs4DK6LOQa0ShzB/dPlEPuURqRvt4xATHjobqG2zLfMeg485ka6KhVo=',
+        aws_access_key_id='ASIAVQEVC2TXDNP6YNGW',
+        aws_secret_access_key='ncn4ACxgTNZCq6HIZRg/zjznGCJmLbQLxzY+r8tV',
+        aws_session_token= 'FwoGZXIvYXdzEND//////////wEaDH7Nq9vSSSBMHOyzpyLOATsvMKjxvSGmH66F//CphLT6E5uFnQhNyEDrUMLEoxXHxG5gzccJPZkNWLpiFJNu3uNfzcvFEoPn+h9n9muxCffSYsqYKBCYvrXJZyI1zVeJ+lY4Uqkj68HEN3gbAgTsgd7T2aFvSAAIJhdj3ui7SRFnJNkY5DuwYcyDu5xslgBPc6GOYnPDuPbjhpPHZwS/FDZ6ab8RoktyLEUG5L8ZAmOGNZFYSzuht9H5ttwCH7J8mY+wKwQWtcDq3OaQMqv5VBT/NYfobwCWpzBTqqJlKKDF46sGMi1rL8kMN1cSC3VbAH30sX4f1UjJYxH8WQO+/YRUleog/ZEI4R6EzweVTZMsRxI=',
         region_name='us-east-1'
     )
 

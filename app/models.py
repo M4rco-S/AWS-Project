@@ -6,12 +6,16 @@ class Alumno(db.Model):
     apellidos = db.Column(db.String(100))
     matricula = db.Column(db.String(20), unique=True)
     promedio = db.Column(db.Float)
+    fotoPerfilUrl = db.Column(db.String(255), nullable = True)
+    password = db.Column(db.String(255))
     
-    def __init__(self, nombres, apellidos, matricula, promedio):
+    def __init__(self, nombres, apellidos, matricula, promedio, fotoPerfilUrl, password):
         self.nombres = nombres
         self.apellidos = apellidos
         self.matricula = matricula
         self.promedio = promedio
+        self.fotoPerfilUrl = fotoPerfilUrl
+        self.password = password
         
     def to_dict(self):
         return {
@@ -19,7 +23,9 @@ class Alumno(db.Model):
             "nombres": self.nombres,
             "apellidos": self.apellidos,
             "matricula": self.matricula,
-            "promedio": self.promedio
+            "promedio": self.promedio,
+            "fotoPerfilUrl": self.fotoPerfilUrl,
+            "password": self.password
         }
 
 

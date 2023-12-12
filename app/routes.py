@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+import boto3
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://root:@localhost/db_rest_awsproject'
@@ -42,6 +43,32 @@ def validar_datos(data, campos, tipos_esperados):
 
 # METODOS GET
 
+@app.route('/alumnos/<int:id>', methods=['GET'])
+def get_alumno(id):
+    
+    alumno = Alumno.query.get(id)
+
+    if not alumno:
+        return jsonify({'error': 'Alumno no encontrado'}), 404
+
+    
+    bucket_name = 'marcoascawsbucket'  
+    foto_perfil_url = f'https://{bucket_name}.s3.amazonaws.com/alumnos/{id}_fotoPerfil.jpg'
+
+ 
+    alumno_data = {
+        'id': alumno.id,
+        'nombres': alumno.nombres,
+        'apellidos': alumno.apellidos,
+        'matricula': alumno.matricula,
+        'promedio': alumno.promedio,
+        'fotoPerfilUrl': foto_perfil_url,  
+       
+    }
+
+    return jsonify(alumno_data), 200
+
+
 @app.route('/alumnos', methods=['GET'])
 def get_alumnos():
     alumnos_data = Alumno.query.all()
@@ -54,6 +81,7 @@ def get_profesores():
     result = profesores_schema.dump(profesores_data)
     return jsonify(result), 200
 
+'''
 @app.route('/alumnos/<int:id>', methods=['GET'])
 def get_alumno(id):
     alumno = Alumno.query.get(id)
@@ -61,6 +89,7 @@ def get_alumno(id):
         result = alumno_schema.dump(alumno)
         return jsonify(result), 200
     return jsonify({'error': 'Alumno no encontrado'}), 404
+'''
 
 @app.route('/profesores/<int:id>', methods=['GET'])
 def get_profesor(id):
@@ -72,11 +101,40 @@ def get_profesor(id):
 
 # METODOS POST
 
+#POST /alumnos/{id}/fotoPerfil
+
+@app.route('/alumnos/<int:id>/fotoPerfil', methods=['POST'])
+def upload_photo(id):
+   
+    if 'foto' not in request.files:
+        return 'No se proporcionó ninguna imagen', 400
+    
+    photo = request.files['foto']
+    
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id='ASIAVQEVC2TXMFGLTAIQ',
+        aws_secret_access_key='gD654U+af/j1UTAw9xoRcbqhoO5xAvYyKJ2WgPS4',
+        aws_session_token='FwoGZXIvYXdzEMz//////////wEaDExTw3LwEIbxZj5MWiLOATQ5dMu9MCCqZm+jI7zqfSBXHJFLxGAOyckZeWyO7rAupE1GaRn2U+xBgbhTGP2b52z0/yY1HPgGn7tDgPKhGO9Bve4OJCDwS4wZE/H/kjypfBF6UfBa9xiB/hwvd6mxmxwc7GDz5RPPRnXU5A/kgLw6JNuPa1RGwhRgSJ6y+MC/3U79hC+LB/u799VltIx5O3eOCLgdw6qEtuX2w04hTSOKU68rUc74uwja3jGDrw0Cu348iRAxkfPs433bsG1p7AaK6DKa/ho/BArgG/uzKK7U4qsGMi0moPQ2xs4DK6LOQa0ShzB/dPlEPuURqRvt4xATHjobqG2zLfMeg485ka6KhVo=',
+        region_name='us-east-1'
+    )
+
+    try:
+       
+        bucket_name = 'marcoascawsbucket'
+        s3.upload_fileobj(photo, bucket_name, f'alumnos/{id}_fotoPerfil.jpg')
+        object_url = f'https://{bucket_name}.s3.amazonaws.com/alumnos/{id}_fotoPerfil.jpg'
+
+        return f'Foto subida con éxito. URL: {object_url}', 200
+    except Exception as e:
+        return f'Error al subir la imagen: {str(e)}', 500
+    
+
 @app.route('/alumnos', methods=['POST'])
 def create_alumno():
     data = request.get_json()
 
-    campos_esperados = ['nombres', 'apellidos', 'matricula', 'promedio']
+    campos_esperados = ['nombres', 'apellidos', 'matricula', 'promedio', 'password']
     tipos_esperados = [str, str, str, float]
 
     if validar_datos(data, campos_esperados, tipos_esperados):
@@ -88,7 +146,9 @@ def create_alumno():
             nombres=data['nombres'],
             apellidos=data['apellidos'],
             matricula=data['matricula'],
-            promedio=data['promedio']
+            promedio=data['promedio'],
+            fotoPerfilUrl = '',
+            password = 'password'
         )
 
         db.session.add(nuevo_alumno)

@@ -4,7 +4,7 @@ from flask_marshmallow import Marshmallow
 import boto3
 import json
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://root:@localhost/db_rest_awsproject'
+app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://admin:AwsProject@aws-dev-project-database.cu2axqbcvtdk.us-east-1.rds.amazonaws.com/aws-dev-project-database'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 db = SQLAlchemy(app)

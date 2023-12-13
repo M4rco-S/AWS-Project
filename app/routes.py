@@ -3,8 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 import boto3
 import json
+
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://admin:12345678@database-1-instance-1.cu2axqbcvtdk.us-east-1.rds.amazonaws.com/dbaws'
+#app.config['SQLALCHEMY_DATABASE_URI']='mysql+pymysql://root:@localhost:3306/db_rest_awsproject'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 db = SQLAlchemy(app)
@@ -23,10 +26,10 @@ profesores = []
 
 sns = boto3.client(
     'sns',
-     region_name='us-east-1',
-    aws_access_key_id='ASIAVQEVC2TXDNP6YNGW',
-    aws_secret_access_key='ncn4ACxgTNZCq6HIZRg/zjznGCJmLbQLxzY+r8tV',
-    aws_session_token= 'FwoGZXIvYXdzEND//////////wEaDH7Nq9vSSSBMHOyzpyLOATsvMKjxvSGmH66F//CphLT6E5uFnQhNyEDrUMLEoxXHxG5gzccJPZkNWLpiFJNu3uNfzcvFEoPn+h9n9muxCffSYsqYKBCYvrXJZyI1zVeJ+lY4Uqkj68HEN3gbAgTsgd7T2aFvSAAIJhdj3ui7SRFnJNkY5DuwYcyDu5xslgBPc6GOYnPDuPbjhpPHZwS/FDZ6ab8RoktyLEUG5L8ZAmOGNZFYSzuht9H5ttwCH7J8mY+wKwQWtcDq3OaQMqv5VBT/NYfobwCWpzBTqqJlKKDF46sGMi1rL8kMN1cSC3VbAH30sX4f1UjJYxH8WQO+/YRUleog/ZEI4R6EzweVTZMsRxI='
+    region_name='us-east-1',
+    aws_access_key_id='ASIAVQEVC2TXP2RIKIBP',
+    aws_secret_access_key='OcMEOzXhGGLi9OhpyhKkOpPVvL6M9A+lvNh+6RfA',
+    aws_session_token= 'FwoGZXIvYXdzENT//////////wEaDBkSMtyAw770SgXeWSLOAUSm9KwuLoHnsDTlNiq1Zz80YCXPGd8YFBnubwCzkiz6Bf9YhLZl5ieiVHVeH3BHkSYRNI2qDfUrWZJ+c+t0FphPCZ1XCqCMZUvd+Cf2QyicB/AmP17TCSTCYssVEP3LU5JHWJfb3/11B77vbGBnjpjv3Y5TtfOISKOTBQxsYSFJdEqRu4TEyeO42BUtQ3+rp79d5EcvcAw1esgZQf3s8lNlyoID0rpwOWQ4TkNg0Dk96bfDFm8ODULhqsvzC+I7ETPxZ3U9YQma727SzR3DKLS25KsGMi24voPqOLViAZHyeAdJc8IfT1yjDI/CAaHPFFxcC2T8H8knH6609/mh+ia7eFA='
    
 )
 
@@ -143,10 +146,11 @@ def upload_photo(id):
     
     s3 = boto3.client(
         's3',
-        aws_access_key_id='ASIAVQEVC2TXDNP6YNGW',
-        aws_secret_access_key='ncn4ACxgTNZCq6HIZRg/zjznGCJmLbQLxzY+r8tV',
-        aws_session_token= 'FwoGZXIvYXdzEND//////////wEaDH7Nq9vSSSBMHOyzpyLOATsvMKjxvSGmH66F//CphLT6E5uFnQhNyEDrUMLEoxXHxG5gzccJPZkNWLpiFJNu3uNfzcvFEoPn+h9n9muxCffSYsqYKBCYvrXJZyI1zVeJ+lY4Uqkj68HEN3gbAgTsgd7T2aFvSAAIJhdj3ui7SRFnJNkY5DuwYcyDu5xslgBPc6GOYnPDuPbjhpPHZwS/FDZ6ab8RoktyLEUG5L8ZAmOGNZFYSzuht9H5ttwCH7J8mY+wKwQWtcDq3OaQMqv5VBT/NYfobwCWpzBTqqJlKKDF46sGMi1rL8kMN1cSC3VbAH30sX4f1UjJYxH8WQO+/YRUleog/ZEI4R6EzweVTZMsRxI=',
-        region_name='us-east-1'
+        region_name='us-east-1',
+        aws_access_key_id='ASIAVQEVC2TXP2RIKIBP',
+        aws_secret_access_key='OcMEOzXhGGLi9OhpyhKkOpPVvL6M9A+lvNh+6RfA',
+        aws_session_token= 'FwoGZXIvYXdzENT//////////wEaDBkSMtyAw770SgXeWSLOAUSm9KwuLoHnsDTlNiq1Zz80YCXPGd8YFBnubwCzkiz6Bf9YhLZl5ieiVHVeH3BHkSYRNI2qDfUrWZJ+c+t0FphPCZ1XCqCMZUvd+Cf2QyicB/AmP17TCSTCYssVEP3LU5JHWJfb3/11B77vbGBnjpjv3Y5TtfOISKOTBQxsYSFJdEqRu4TEyeO42BUtQ3+rp79d5EcvcAw1esgZQf3s8lNlyoID0rpwOWQ4TkNg0Dk96bfDFm8ODULhqsvzC+I7ETPxZ3U9YQma727SzR3DKLS25KsGMi24voPqOLViAZHyeAdJc8IfT1yjDI/CAaHPFFxcC2T8H8knH6609/mh+ia7eFA='
+   
     )
 
     try:
@@ -165,7 +169,7 @@ def create_alumno():
     data = request.get_json()
 
     campos_esperados = ['nombres', 'apellidos', 'matricula', 'promedio', 'password']
-    tipos_esperados = [str, str, str, float]
+    tipos_esperados = [str, str, str, float, str]
 
     if validar_datos(data, campos_esperados, tipos_esperados):
         nueva_matricula = data['matricula']

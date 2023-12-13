@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 import boto3
 import json
+#'mysql+pymysql://<usuario>:<contraseña>@<hostname_del_RDS>/<nombre_de_la_base_de_datos>'
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:12345678@aws-dev-project-database.cu2axqbcvtdk.us-east-1.rds.amazonaws.com/aws-dev-project-database'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False

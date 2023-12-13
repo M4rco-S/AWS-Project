@@ -6,7 +6,7 @@ import json
 #'mysql+pymysql://<usuario>:<contraseña>@<hostname_del_RDS>/<nombre_de_la_base_de_datos>'
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:12345678@database-1-instance-1.cu2axqbcvtdk.us-east-1.rds.amazonaws.com/database-1'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:12345678@aws-dev-project-database.cu2axqbcvtdk.us-east-1.rds.amazonaws.com/aws-dev-project-database'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 db = SQLAlchemy(app)

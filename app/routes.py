@@ -211,10 +211,7 @@ def login_session(id):
 @app.route('/alumnos/<int:id>/session/verify', methods=['POST'])
 def verify_session(id):
     
-    alumno = Alumno.query.get(id)
     
-    if not alumno:
-        return jsonify({'error': 'Alumno no encontrado'}), 404
     
     sessionString = request.json.get('sessionString')
     

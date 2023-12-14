@@ -1,8 +1,13 @@
+import random
+import string
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 import boto3
 import json
+import botocore.exceptions
+import uuid
+import time
 
 
 app = Flask(__name__)
@@ -24,38 +29,37 @@ profesores_schema = ProfesorSchema(many=True)
 alumnos = []
 profesores = []
 
+global_aws_access_key_id='ASIAVQEVC2TXMFDAGKK5'
+global_aws_secret_access_key='Z3TTsw6PSNFRoxIC7QUdOHhHILt22fxx1oPRCOz6'
+global_aws_session_token='FwoGZXIvYXdzEP3//////////wEaDDmT1BwPKT5+MQdqSCLOAWnvN8vBEcil2PwxYEzM34kLFRS+7zVwy3jeiZZKgJGxv2Yrw7fl4SdKZSgfp2R36OeeqTiXfiOb4MCyb4zNzpWEkA0sfFYJulCV+xOH/1fOkGI2iaqgnEqfNWimZ/StdUkTWrUoBQNUnzDfVnq6a4AXxj3b83ueDKv1S4qWUtPC/ROJYQfUrmEmpYhk5J7WiAIN4U/CSDXseWMfVd1nxf3NP+IdLsMB2UkWFPFjggEnngMICkEAhaqpz+btJHb/Y0958oYYpGectbPZNReXKOmt7asGMi2OGvT30VhjcY7069aOgN42Qzv7staskaxHyV7pGcdTksEegfFh/NyoxyYvBXA='
+s3 = boto3.client(
+    's3',
+    region_name='us-east-1',
+    aws_access_key_id=global_aws_access_key_id,
+    aws_secret_access_key=global_aws_secret_access_key,
+    aws_session_token= global_aws_session_token
+    )
+
 sns = boto3.client(
     'sns',
     region_name='us-east-1',
-    aws_access_key_id='ASIAVQEVC2TXDRWJ4CC',
-    aws_secret_access_key='MXL5nMOwhBWsIVIv9JlwJOyv3DGg6P1vLbmwu/4f',
-    aws_session_token= 'FwoGZXIvYXdzEOT//////////wEaDNwSLtZsN3Oo3u0xBiLOAVEC8aD2N1EwkeHGG7R9WOTmPizRCZQtdyo9BDa052g6dYvwBc7rLIIZgNGrsgyJpCo0PAa+e0TF6qeIRZWqwVN0J2FI2kQp7254jjaG0bWAMWNQU2h0lqOTkZOgxkUJ9guHbw+ylTMhAYj8eT60PZD8MGv2xR/1P5PBSW+SGbHRxGfm6TJgCwUrlpf1b1Lb6yanN4XqgA5bd4unot4Qb0KatMphdd2xQim6+LA8UFPUxc54CR+Pw22M8VMDxCEmVftCpzhGYQRgzfZm1Q4JKM/z56sGMi1c4q9bwZ8g33JJFFmmMfbLHWRM8U6y7EEoZOekp99qLoXBkDX6NufHvPSTVoI='
-   
+    aws_access_key_id=global_aws_access_key_id,
+    aws_secret_access_key=global_aws_secret_access_key,
+    aws_session_token= global_aws_session_token
+    )
+
+
+dynamodb = boto3.resource(
+    'dynamodb',
+    region_name='us-east-1',
+    aws_access_key_id=global_aws_access_key_id,
+    aws_secret_access_key=global_aws_secret_access_key,
+    aws_session_token=global_aws_session_token
 )
 
-@app.route('/alumnos/<int:id>/email', methods=['POST'])
-def send_notification(id):
-    
-    alumno = Alumno.query.get(id)
-
-    student_data = {
-        'id': alumno.id,
-        'nombre': alumno.nombres,
-        'apellido': alumno.apellidos
-    }
-
-    message = json.dumps(student_data)
+table = dynamodb.Table('sesiones-alumnos')
 
 
-    response = sns.publish(
-        TopicArn='arn:aws:sns:us-east-1:378269783278:notificar-alumnos',
-        Message=message,
-        Subject='Notificación de calificaciones'
-    )
-    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-        return jsonify({'message': 'Notificación enviada correctamente'}), 200
-    else:
-        return jsonify({'error': 'Hubo un problema al enviar la notificación'}), 500
 
 @app.errorhandler(405)
 def metodo_no_permitido(error):
@@ -95,7 +99,8 @@ def get_alumno(id):
         'apellidos': alumno.apellidos,
         'matricula': alumno.matricula,
         'promedio': alumno.promedio,
-        'fotoPerfilUrl': foto_perfil_url,  
+        'fotoPerfilUrl': foto_perfil_url,
+        'password': alumno.password
        
     }
 
@@ -136,29 +141,134 @@ def get_profesor(id):
 
 #POST /alumnos/{id}/fotoPerfil
 
+@app.route('/alumnos/<int:id>/email', methods=['POST'])
+def send_notification(id):
+    
+    alumno = Alumno.query.get(id)
+    
+    if not alumno:
+        return jsonify({'error': 'Alumno no encontrado'}), 404
+
+    student_data = {
+        'id': alumno.id,
+        'nombre': alumno.nombres,
+        'apellido': alumno.apellidos
+    }
+
+    message = json.dumps(student_data)
+
+    response = sns.publish(
+        TopicArn='arn:aws:sns:us-east-1:378269783278:notificar-alumnos',
+        Message=message,
+        Subject='Notificación de calificaciones'
+    )
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        return jsonify({'message': 'Notificación enviada correctamente'}), 200
+    else:
+        return jsonify({'error': 'Hubo un problema al enviar la notificación'}), 404
+
+@app.route('/alumnos/<int:id>/session/login', methods=['POST'])
+def login_session(id):
+
+    password = request.json.get('password')
+    print(password) 
+    alumno = Alumno.query.get(id)
+    
+    if not alumno:
+        return jsonify({'error': 'Alumno no encontrado'}), 404
+    
+   
+    if password == alumno.password:  
+        alumnoId = id  
+        
+       
+        def generate_session_string():
+            return ''.join(random.choices(string.ascii_letters + string.digits, k=128))
+
+      
+        try:
+            session_item = {
+                'id': str(uuid.uuid4()),
+                'fecha': int(time.time()),
+                'alumnoId': int(alumnoId),
+                'active': True,
+                'sessionString': generate_session_string()
+            }
+            
+            
+            response = table.put_item(Item=session_item)
+            
+            #print("Ítem creado exitosamente:", response)
+            return jsonify({'message': 'Sesión iniciada correctamente'}), 200
+        
+        except botocore.exceptions.ClientError as e:
+            #print("Error al crear el ítem:", e)
+            return jsonify({'error': 'Hubo un problema al iniciar sesión'}), 500
+
+    else:
+        return jsonify({'error': 'Contraseña incorrecta'}), 400
+
+@app.route('/alumnos/<int:id>/session/verify', methods=['POST'])
+def verify_session(id):
+    
+    alumno = Alumno.query.get(id)
+    
+    if not alumno:
+        return jsonify({'error': 'Alumno no encontrado'}), 404
+    
+    sessionString = request.json.get('sessionString')
+    
+    
+    try:
+        response = table.get_item(Key={'id': sessionString})
+        item = response.get('Item')
+        
+        if item and item.get('alumnoId') == id and item.get('active', False):
+            return jsonify({'message': 'Sesión válida'}), 200
+        else:
+            return jsonify({'error': 'Sesión inválida'}), 400
+        
+    except Exception as e:
+        print("Error al verificar la sesión:", e)
+        return jsonify({'error': 'Error al verificar la sesión'}), 500
+
+@app.route('/alumnos/<int:id>/session/logout', methods=['POST'])
+def logout_session(id):
+    sessionString = request.json.get('sessionString')  # Obtener la sessionString del body
+    
+    try:
+        # Obtener el registro correspondiente a la sessionString
+        response = table.get_item(Key={'id': sessionString})
+        
+        if 'Item' in response:
+            item = response['Item']
+            
+             # Verificar si la ID en la tabla coincide con la proporcionada en la URL
+            if item.get('alumnoId') == id:
+                table.update_item(
+                    Key={'id': sessionString},
+                    UpdateExpression='SET active = :val',
+                    ExpressionAttributeValues={':val': False}
+                )
+                return jsonify({'message': 'Sesión cerrada correctamente'}), 200
+        else:
+            return jsonify({'error': 'SessionString no válida'}), 400        
+    except botocore.exceptions.ClientError as e:
+        return jsonify({'error': 'Hubo un problema al cerrar la sesión'}), 500
+
 @app.route('/alumnos/<int:id>/fotoPerfil', methods=['POST'])
 def upload_photo(id):
-   
+    
     if 'foto' not in request.files:
-        return 'No se proporcionó ninguna imagen', 400
+        return request.files, 400
     
     photo = request.files['foto']
     
-    s3 = boto3.client(
-        's3',
-        region_name='us-east-1',
-        aws_access_key_id='ASIAVQEVC2TXDRWJ4CC',
-        aws_secret_access_key='MXL5nMOwhBWsIVIv9JlwJOyv3DGg6P1vLbmwu/4f',
-        aws_session_token= 'FwoGZXIvYXdzEOT//////////wEaDNwSLtZsN3Oo3u0xBiLOAVEC8aD2N1EwkeHGG7R9WOTmPizRCZQtdyo9BDa052g6dYvwBc7rLIIZgNGrsgyJpCo0PAa+e0TF6qeIRZWqwVN0J2FI2kQp7254jjaG0bWAMWNQU2h0lqOTkZOgxkUJ9guHbw+ylTMhAYj8eT60PZD8MGv2xR/1P5PBSW+SGbHRxGfm6TJgCwUrlpf1b1Lb6yanN4XqgA5bd4unot4Qb0KatMphdd2xQim6+LA8UFPUxc54CR+Pw22M8VMDxCEmVftCpzhGYQRgzfZm1Q4JKM/z56sGMi1c4q9bwZ8g33JJFFmmMfbLHWRM8U6y7EEoZOekp99qLoXBkDX6NufHvPSTVoI='
-   
-    )
-
     try:
        
         bucket_name = 'marcoascawsbucket'
         s3.upload_fileobj(photo, bucket_name, f'alumnos/{id}_fotoPerfil.jpg')
         object_url = f'https://{bucket_name}.s3.amazonaws.com/alumnos/{id}_fotoPerfil.jpg'
-
         return f'Foto subida con éxito. URL: {object_url}', 200
     except Exception as e:
         return f'Error al subir la imagen: {str(e)}', 500

@@ -29,9 +29,9 @@ profesores_schema = ProfesorSchema(many=True)
 alumnos = []
 profesores = []
 
-global_aws_access_key_id='ASIAVQEVC2TXMFDAGKK5'
-global_aws_secret_access_key='Z3TTsw6PSNFRoxIC7QUdOHhHILt22fxx1oPRCOz6'
-global_aws_session_token='FwoGZXIvYXdzEP3//////////wEaDDmT1BwPKT5+MQdqSCLOAWnvN8vBEcil2PwxYEzM34kLFRS+7zVwy3jeiZZKgJGxv2Yrw7fl4SdKZSgfp2R36OeeqTiXfiOb4MCyb4zNzpWEkA0sfFYJulCV+xOH/1fOkGI2iaqgnEqfNWimZ/StdUkTWrUoBQNUnzDfVnq6a4AXxj3b83ueDKv1S4qWUtPC/ROJYQfUrmEmpYhk5J7WiAIN4U/CSDXseWMfVd1nxf3NP+IdLsMB2UkWFPFjggEnngMICkEAhaqpz+btJHb/Y0958oYYpGectbPZNReXKOmt7asGMi2OGvT30VhjcY7069aOgN42Qzv7staskaxHyV7pGcdTksEegfFh/NyoxyYvBXA='
+global_aws_access_key_id='ASIAVQEVC2TXHJUEQIPW'
+global_aws_secret_access_key='hLocF2HWTuHTFFb7Rhq9Y6eHH2jMg68s61a23oGW'
+global_aws_session_token='FwoGZXIvYXdzEAIaDG598PjYE24VwV8J0iLOAf/dyOmYuSHVyMGU/9e0LiVhUTOsxiWbjilKkBNBGrlzBZ+xUH5pri/htfQUm83fd8GHezYaaluuaA7ITc8uipouqUnMn4bRGVw4AQApE6076dngOJxg+RaK9mwJ+aO+VH7LrKCM2mde9RkjdEF058Rzqyqr3LcaY62pzxIKA9Z1ID6BTY8pMh2WlcQ8ZkYDYSSylUjh3A3MqvY+4iKMZGpuECcq5EbPkV6t/YZ6mFrC1CBApaVbJ43rhsRRSzz9DhK53n8vwrGgzj+MhjknKO+17qsGMi3O+gdXXdcmzXIdJ+PfbQY7pKu0s/a6jsaocdGSeCAtXh6ee2kf286vPhRhezI='
 s3 = boto3.client(
     's3',
     region_name='us-east-1',
@@ -119,15 +119,7 @@ def get_profesores():
     result = profesores_schema.dump(profesores_data)
     return jsonify(result), 200
 
-'''
-@app.route('/alumnos/<int:id>', methods=['GET'])
-def get_alumno(id):
-    alumno = Alumno.query.get(id)
-    if alumno:
-        result = alumno_schema.dump(alumno)
-        return jsonify(result), 200
-    return jsonify({'error': 'Alumno no encontrado'}), 404
-'''
+
 
 @app.route('/profesores/<int:id>', methods=['GET'])
 def get_profesor(id):
@@ -171,7 +163,7 @@ def send_notification(id):
 def login_session(id):
 
     password = request.json.get('password')
-    print(password) 
+    #print(password) 
     alumno = Alumno.query.get(id)
     
     if not alumno:
@@ -181,10 +173,11 @@ def login_session(id):
     if password == alumno.password:  
         alumnoId = id  
         
-       
+        
         def generate_session_string():
             return ''.join(random.choices(string.ascii_letters + string.digits, k=128))
-
+        
+        sessionStr = generate_session_string()
       
         try:
             session_item = {
@@ -192,35 +185,34 @@ def login_session(id):
                 'fecha': int(time.time()),
                 'alumnoId': int(alumnoId),
                 'active': True,
-                'sessionString': generate_session_string()
+                'sessionString': sessionStr
             }
             
             
             response = table.put_item(Item=session_item)
             
             #print("Ítem creado exitosamente:", response)
-            return jsonify({'message': 'Sesión iniciada correctamente'}), 200
+            return jsonify({'message': 'Sesión iniciada correctamente','sessionString': sessionStr}), 200
         
         except botocore.exceptions.ClientError as e:
             #print("Error al crear el ítem:", e)
             return jsonify({'error': 'Hubo un problema al iniciar sesión'}), 500
 
     else:
+        print(password, alumno.password)
         return jsonify({'error': 'Contraseña incorrecta'}), 400
 
 @app.route('/alumnos/<int:id>/session/verify', methods=['POST'])
 def verify_session(id):
     
-    
-    
+
     sessionString = request.json.get('sessionString')
-    
-    
+
     try:
         response = table.get_item(Key={'id': sessionString})
         item = response.get('Item')
-        
-        if item and item.get('alumnoId') == id and item.get('active', False):
+        #print(item.get('active'))
+        if item and item.get('alumnoId') == id and item.get('active', True):
             return jsonify({'message': 'Sesión válida'}), 200
         else:
             return jsonify({'error': 'Sesión inválida'}), 400
@@ -229,19 +221,19 @@ def verify_session(id):
         print("Error al verificar la sesión:", e)
         return jsonify({'error': 'Error al verificar la sesión'}), 500
 
-@app.route('/alumnos/<int:id>/session/logout', methods=['POST'])
-def logout_session(id):
-    sessionString = request.json.get('sessionString')  # Obtener la sessionString del body
+@app.route('/alumnos/<int:alumnoId>/session/logout', methods=['POST'])
+def logout_session(alumnoId):
+    sessionString = request.json.get('sessionString') 
     
     try:
-        # Obtener el registro correspondiente a la sessionString
+
         response = table.get_item(Key={'id': sessionString})
         
         if 'Item' in response:
             item = response['Item']
             
-             # Verificar si la ID en la tabla coincide con la proporcionada en la URL
-            if item.get('alumnoId') == id:
+           
+            if item.get('alumnoId') == alumnoId:
                 table.update_item(
                     Key={'id': sessionString},
                     UpdateExpression='SET active = :val',
@@ -256,17 +248,23 @@ def logout_session(id):
 @app.route('/alumnos/<int:id>/fotoPerfil', methods=['POST'])
 def upload_photo(id):
     
-    if 'foto' not in request.files:
-        return request.files, 400
+    alumno = Alumno.query.get(id)
     
-    photo = request.files['foto']
+    if not alumno:
+        return jsonify({'error': 'Alumno no encontrado'}), 404
+
+    if 'foto' not in request.files:
+        return jsonify({'response': 'Error: No file part'}), 400
+   
     
     try:
+    
+        photo = request.files['foto']
        
         bucket_name = 'marcoascawsbucket'
         s3.upload_fileobj(photo, bucket_name, f'alumnos/{id}_fotoPerfil.jpg')
         object_url = f'https://{bucket_name}.s3.amazonaws.com/alumnos/{id}_fotoPerfil.jpg'
-        return f'Foto subida con éxito. URL: {object_url}', 200
+        return jsonify({'fotoPerfilUrl':object_url}), 200
     except Exception as e:
         return f'Error al subir la imagen: {str(e)}', 500
     
@@ -289,7 +287,7 @@ def create_alumno():
             matricula=data['matricula'],
             promedio=data['promedio'],
             fotoPerfilUrl = '',
-            password = 'password'
+            password =data['password']
         )
 
         db.session.add(nuevo_alumno)
